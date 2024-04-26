@@ -12,7 +12,7 @@ In the past, embedded system development environments were only provided by vend
 
 <!-- excerpt start -->
 
-This post introduces a Zephyr reference app for an STM32 device, which leverages a devcontainer within VSCode and Docker. It lays the foundation for creating a development environment that won't polute your host machine and ensures everyone's build and the automated CI builds are the same thing, every single time.
+This post introduces a Zephyr reference app for an STM32 device, which leverages a devcontainer within VSCode and Docker. It lays the foundation for creating a development environment that won't pollute your host machine and ensures everyone's build and the automated CI builds are the same thing, every single time.
 
 <!-- excerpt end -->
 
@@ -42,7 +42,7 @@ The following diagram helps visualize how all the pieces fit together. Throughou
 
 ## Devcontainers and VSCode Integration
 ### Container Image
-The cental piece to all of this is the container. It provides the consistent enviroment for anyone working on your project. It ensures repeatability and avoids issues with developer's machines being different. The integration VSCode provides for containers is through the `devcontainer.json` file found in:
+The central piece to all of this is the container. It provides the consistent environment for anyone working on your project. It ensures repeatability and avoids issues with developer's machines being different. The integration VSCode provides for containers is through the `devcontainer.json` file found in:
 
 ```bash
 .vscode/devcontainer.json
@@ -110,7 +110,7 @@ As a convenience, the `postCreateCommand` runs `west init` once the devcontainer
 When using a lifecycle script, it is important to now when and where in the startup of the container is happening. For example, `initializeCommand` is run on the host machine during initialization, while the `onCreateCommand` is run inside the container immediately after it has started for the first time.
 
 ### VSCode Customizations
-The last section in the `devcontainer.json` file allows for customizations to the VSCode editor itself. This is used to setup specific toolchain paths, file associations, formating tools, and install required extensions. This is great way to ensure coding or styling standards are used by everyone.
+The last section in the `devcontainer.json` file allows for customizations to the VSCode editor itself. This is used to setup specific toolchain paths, file associations, formatting tools, and install required extensions. This is great way to ensure coding or styling standards are used by everyone.
 
 ```json
 	// Configure tool-specific properties.
@@ -141,7 +141,7 @@ The last section in the `devcontainer.json` file allows for customizations to th
 ```
 
 ## Git Configuration
-In order to make the git workflow smooth, you can configure WSL to use the Git Credential Manager installed on your Windows host. This only needs to be done once per WSL distro you have, and you may only ever have one. Note also, the you should `git clone` any repo you are working with inside your WSL disto file space. If you place the repo in the Windows file space (e.g. `C:\my_repo`), there will be a significant [performance](https://learn.microsoft.com/en-us/windows/wsl/filesystems#file-storage-and-performance-across-file-systems) hit and will noticeably slow your builds down.
+In order to make the git workflow smooth, you can configure WSL to use the Git Credential Manager installed on your Windows host. This only needs to be done once per WSL distro you have, and you may only ever have one. Note also, the you should `git clone` any repo you are working with inside your WSL distro file space. If you place the repo in the Windows file space (e.g. `C:\my_repo`), there will be a significant [performance](https://learn.microsoft.com/en-us/windows/wsl/filesystems#file-storage-and-performance-across-file-systems) hit and will noticeably slow your builds down.
 
 The README file directs you to set this up by first installing Git for Windows, then in WSL, configure your name and email and login to github with the Github CLI tool `gh`.
 
@@ -194,7 +194,7 @@ Once done, you can now plug in your STLINK debugger, [bind it and attach it](htt
 You can review the debugging configuration in `.vscode/launch.json`. In this file you will also note there is a JLink configuration which can be used if that is your preferred debugger. You will need to install the JLink drivers similarly to how the STMCubeCLT was done.
 
 ## Additional Project Features
-I endeavour this reference project to provide useful features of modern embedded development. You will find below some brief introduction to those features such as unit testing, code formatting and a CI Pipeline using Github Actions. These will evolve over time incorporting feedback and new features with the aim to a goto for the embedded community as an example how do things well. Your input and contributions are welcome on all of this.
+I endeavour this reference project to provide useful features of modern embedded development. You will find below some brief introduction to those features such as unit testing, code formatting and a CI Pipeline using Github Actions. These will evolve over time incorporating feedback and new features with the aim to a go to for the embedded community as an example how do things well. Your input and contributions are welcome on all of this.
 
 ### Example Application
 State Machine
