@@ -148,7 +148,25 @@ The README file directs you to set this up by first installing Git for Windows, 
 Doing all this ensures your credentials will also be available inside any devcontainer you subsequently run from that WSL instance.
 
 ## West Workspace
-TBD - detail the choice west workspace for the project
+Zephyr's meta tool `west` supports three project [topologies](https://docs.zephyrproject.org/latest/develop/west/workspaces.html#topologies-supported). This project uses the T2: Star topology, where the application is the manifest repository as shown below.
+
+```
+west-workspace/
+│
+├── app/                 # your .git project
+│   ├── CMakeLists.txt   # project CMake file
+│   ├── prj.conf         # never modified by west
+│   ├── main.c           # application main()
+│   └── west.yml         # main manifest with required modules and zephyr repositories
+│
+├── modules/
+│   └── cmsis/           # .git/ project from either the main manifest or some import.
+│   └── hal_stm32/       # .git/ project from either the main manifest or some import.
+│
+└── zephyr/              # .git/ project
+    └── west.yml         # This can be partially imported with lower precedence or ignored.
+                         # Only the 'manifest-rev' version can be imported.
+```
 
 ## Configuring and Building Firmware
 
@@ -158,15 +176,18 @@ As noted earlier, the devcontainer file has already run `west init` if needed fo
 
 ```bash
 west update
+```
+
+`west update` will use the `app/west.yml` file to download the required module and Zephyr repositories. As this is an STM32 project, the west file narrows the list of imported modules to `cmsis` and `hal_stm32` only. This keeps your working directory distraction free of unneeded modules. The `west.yml` file also allows you to specify the version of Zephyr you want to use.
+
+```bash
 west build -d build -b nucleo_l476rg app
 ```
 
-`west update` will use the `app/west.yml` file to download the needed Zephyr repositories. As this is an STM32 project, the west file narrows the list of imported modules to `cmsis` and `hal_stm32` only. This keeps your working directory distraction free of unneeded modules. The `west.yml` file also allows you to specify the version of Zephyr you want to use. (TODO: part of upgrading your used Zephyr version)
-
 `west build` does the actual work to finally give you the that `.elf` file we have been working towards.
-- `-d build` specifies to put all the build artifacts in folder called `build`.
+- `-d build` specifies to put all the build artifacts in a folder called `build`.
 - `-b nucleo_l476rg` specifies to build the app for an [STM Nucleo-64 STM32L476RG](https://www.st.com/en/evaluation-tools/nucleo-l476rg.html) development board.
-- `app` specifies the application to build (i.e. the folder where the application lives with a `west.yml` file)
+- `app` specifies your application to build (i.e. the folder where the application lives with a `west.yml` file)
 
 ## Debugging
 In all my travails with containerized development, this was a blocking point for some time. It was next to impossible to get the USB debugger exposed properly to the container. However, [dorssel](https://github.com/dorssel) created the [usbipd-win](https://github.com/dorssel/usbipd-win) project and Microsoft contributed to help make it work with WSL2. Finally, there was a solution to get a USB debugger working with a container.
