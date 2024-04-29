@@ -58,7 +58,7 @@ Inside the `devcontainer.json` file you will see a Dockerfile is specified to bu
 }
 ```
 
-By providing a Dockerfile, shown below, it is possible to use the latest Zephyr CI image or the version provided from the devcontainer file. The Dockerfile also allows you to customize the environment beyond what the Zephyr CI image provides if needed. For example, the Python `semver` module is installed in below. This approach allows you to control when you move to newer Zephyr versions in your development environment and any other dependencies your project needs.
+By providing a Dockerfile, shown below, it is possible to use the latest Zephyr CI image or the version provided from the devcontainer file. The Dockerfile also allows you to customize the environment beyond what the Zephyr CI image provides if needed. For example, the Python `semver` module is installed using the `RUN` command below. This approach allows you to control when you move to newer Zephyr versions in your development environment and any other dependencies your project needs.
 
 ```docker
 ARG ZEPHYR_CONTAINER_VERSION="latest"
@@ -92,8 +92,8 @@ The `devcontainer.json` file also allows you to specify mounts between WSL and t
 	]
 ```
 
-1. Sharing `/dev/bus/usb` allows the container to see the USB debugger.
-1. Sharing the udev rules allows the container to access the USB debugger without `sudo`
+1. Sharing `/dev/bus/usb` allows the container to recognize the USB debugger even if it is attached after the container is running.
+1. Sharing the udev rules allows the container to access the USB debugger without `sudo`.
 1. A generic share folder is created as a helper location. It is used in a script described later to install the ST Command Line Tools.
 
 ### Lifecycle Scripts
@@ -107,10 +107,10 @@ As a convenience, the `postCreateCommand` runs `west init` once the devcontainer
 	},
 ```
 
-When using a lifecycle script, it is important to now when and where in the startup of the container is happening. For example, `initializeCommand` is run on the host machine during initialization, while the `onCreateCommand` is run inside the container immediately after it has started for the first time.
+When using a lifecycle script, it is important to know when and where in the startup of the container it is executing. For example, `initializeCommand` is run on the host machine during initialization, while the `onCreateCommand` is run inside the container immediately after it has started for the first time.
 
 ### VSCode Customizations
-The last section in the `devcontainer.json` file allows for customizations to the VSCode editor itself. This is used to setup specific toolchain paths, file associations, formatting tools, and install required extensions. This is great way to ensure coding or styling standards are used by everyone.
+The last section in the `devcontainer.json` file allows for customizations to the VSCode editor itself. This is used to setup specific toolchain paths, file associations, formatting tools, and install required extensions. This is great way to ensure common IDE setups for critical things like coding or styling standards are used by everyone.
 
 ```json
 	// Configure tool-specific properties.
@@ -141,11 +141,11 @@ The last section in the `devcontainer.json` file allows for customizations to th
 ```
 
 ## Git Configuration
-In order to make the git workflow smooth, you can configure WSL to use the Git Credential Manager installed on your Windows host. This only needs to be done once per WSL distro you have, and you may only ever have one. Note also, the you should `git clone` any repo you are working with inside your WSL distro file space. If you place the repo in the Windows file space (e.g. `C:\my_repo`), there will be a significant [performance](https://learn.microsoft.com/en-us/windows/wsl/filesystems#file-storage-and-performance-across-file-systems) hit and will noticeably slow your builds down.
+In order to make the git workflow smooth, you can configure WSL to use the Git Credential Manager installed on your Windows host. This only needs to be done once per WSL distro you have, and you may only ever have one. Note also, that you should `git clone` any repo you are working with inside your WSL file space. If you place the repo in the Windows file space (e.g. `C:\my_repo`), there will be a significant [performance](https://learn.microsoft.com/en-us/windows/wsl/filesystems#file-storage-and-performance-across-file-systems) hit that will noticeably slow your builds down.
 
-The README file directs you to set this up by first installing Git for Windows, then in WSL, configure your name and email and login to github with the Github CLI tool `gh`.
+The README file directs you to set this up by first installing Git for Windows, then in WSL, configure your global name and email and login to github with the Github CLI tool `gh`.
 
-Doing all this ensures your credentials will also be available in any devcontainer you run from that WSL instance.
+Doing all this ensures your credentials will also be available inside any devcontainer you subsequently run from that WSL instance.
 
 ## West Workspace
 TBD - detail the choice west workspace for the project
@@ -161,27 +161,41 @@ west update
 west build -d build -b nucleo_l476rg app
 ```
 
-`west update` will use the `app/west.yml` file to download the needed Zephyr repositories. As this is an STM32 project, the west file narrows the list of imported modules to `cmsis` and `hal_stm32` only. This keeps your working directory distraction free of unneeded modules. The `west.yml` file also allows you to specify the version of Zephyr you want to use.
+`west update` will use the `app/west.yml` file to download the needed Zephyr repositories. As this is an STM32 project, the west file narrows the list of imported modules to `cmsis` and `hal_stm32` only. This keeps your working directory distraction free of unneeded modules. The `west.yml` file also allows you to specify the version of Zephyr you want to use. (TODO: part of upgrading your used Zephyr version)
 
 `west build` does the actual work to finally give you the that `.elf` file we have been working towards.
 - `-d build` specifies to put all the build artifacts in folder called `build`.
-- `-b nucleo_l476rg` specifies which board to build the app for. In this case, it is being built for the STM32L475RG Nucleo eval board.
-- `app` specifies the application to be build (i.e. the folder where the application lives with a `west.yml` file)
+- `-b nucleo_l476rg` specifies to build the app for an [STM Nucleo-64 STM32L476RG](https://www.st.com/en/evaluation-tools/nucleo-l476rg.html) development board.
+- `app` specifies the application to build (i.e. the folder where the application lives with a `west.yml` file)
 
 ## Debugging
 In all my travails with containerized development, this was a blocking point for some time. It was next to impossible to get the USB debugger exposed properly to the container. However, [dorssel](https://github.com/dorssel) created the [usbipd-win](https://github.com/dorssel/usbipd-win) project and Microsoft contributed to help make it work with WSL2. Finally, there was a solution to get a USB debugger working with a container.
 
 That said, there are still a few hurdles before we can hit that magic debug button in VSCode.
 
-In the earlier devcontainer [Shared Mounts](#shared-mounts) section, we laid the groundwork for debugging to work. The USB bus and `udev` rules were shared from WSL, along with a generic share folder.
+First, you need to create the `udev` rules in your WSL instance for non-root access USB debuggers. As this is an STM32 focused project, I chose to support STLINK. The easiest way to do this is by running:
 
-As this is STM32 focused project, I chose to support STLINK. That choice comes with some issues in fully automating the setup, namely that ST has you agree to their waivers when downloading tools. So this step is partially manual as a result.
+```bash
+sudo apt install stlink-tools
+```
 
-The needed tools (e.g. `gdbserver`) are supplied with the [STM32CubeCLT](https://www.st.com/en/development-tools/stm32cubeclt.html) from ST. From Windows, it should be placed in `\\wsl.localhost\Ubuntu\home\<username>\share`. Because of the previous mount specified in the `devcontainer.json` file, the downloaded file is now available in WSL and your container.
+This handles setting up those `udev` rules for you. You only need to do this once per WSL instance. If you prefer to do this yourself, you will need add the appropriate `.rules` files similar to those shown below.
 
-First you should either run `sudo apt install stlink-tools` or install the downloaded file your WSL instance. This is needed to ensure the `udev` rules for STLINK debuggers are setup properly. You only need to do this once per WSL instance.
+```bash
+ubuntu:/etc/udev/rules.d$ ls -l
+-rw-r--r-- 1 root root   245 Jun 11  2021 49-stlinkv1.rules
+-rw-r--r-- 1 root root   439 Jun 11  2021 49-stlinkv2-1.rules
+-rw-r--r-- 1 root root   253 Jun 11  2021 49-stlinkv2.rules
+-rw-r--r-- 1 root root  1368 Jun 11  2021 49-stlinkv3.rules
+```
 
-Second, inside your container, a custom west helper command is provided to install the STM32CubeCLT in your container. The script handles unpacking the archive and installing the needed pieces.
+In the earlier devcontainer [Shared Mounts](#shared-mounts) section, we laid the groundwork for these `udev` rules to work with containers by sharing them with the container from WSL.
+
+Second, the needed tools (e.g. `gdbserver`) to support STLINK debugging need to be installed inside the container. The choice of supporting STLINK debuggers comes with some issues in fully automating the setup inside the container, namely that ST has you agree to their waivers when downloading tools. As a result, this step is partially manual.
+
+Download the [STM32CubeCLT](https://www.st.com/en/development-tools/stm32cubeclt.html) package from ST. From your Windows context, it should be placed in `\\wsl.localhost\Ubuntu\home\<username>\share`. Because one of the previous shared mounts specified in the `devcontainer.json` file, the downloaded file will be available in your container as well at `/mnt/share`.
+
+From the terminal prompt of your container in VSCode, the following custom west script handles unpacking the archive and installing the needed pieces.
 
 ```bash
 west st-clt /mnt/share/<SMT32CubeCLT filename>
@@ -191,10 +205,10 @@ The script is located at `app/scripts/west_commands_st-clt.py` if you are intere
 
 Once done, you can now plug in your STLINK debugger, [bind it and attach it](https://learn.microsoft.com/en-us/windows/wsl/connect-usb#attach-a-usb-device) with `usbipd` in PowerShell, then start your debugging session in VSCode leveraging the [Cortex-Debug](https://marketplace.visualstudio.com/items?itemName=marus25.cortex-debug) extension from marus25.
 
-You can review the debugging configuration in `.vscode/launch.json`. In this file you will also note there is a JLink configuration which can be used if that is your preferred debugger. You will need to install the JLink drivers similarly to how the STMCubeCLT was done.
+You can review the debugging configuration in `.vscode/launch.json`. In this file you will also note there is a JLink configuration which can be used if that is your preferred debugger. You will need to install the JLink `udev` rules and drivers similarly to how the STMCubeCLT was done.
 
 ## Additional Project Features
-I endeavour this reference project to provide useful features of modern embedded development. You will find below some brief introduction to those features such as unit testing, code formatting and a CI Pipeline using Github Actions. These will evolve over time incorporating feedback and new features with the aim to a go to for the embedded community as an example how do things well. Your input and contributions are welcome on all of this.
+I endeavour this reference project to provide useful features for modern embedded development. You will find below some brief introduction to those features such as unit testing, code formatting and a CI Pipeline using Github Actions. These will evolve over time incorporating feedback and new features aiming to be a go to for the embedded community as a "how to". Your input and contributions are encouraged and welcome.
 
 ### Example Application
 State Machine
