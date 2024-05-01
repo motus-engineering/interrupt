@@ -141,11 +141,11 @@ The last section in the `devcontainer.json` file allows for customizations to th
 ```
 
 ## Git Configuration
-In order to make the git workflow smooth, you can configure WSL to use the Git Credential Manager installed on your Windows host. This only needs to be done once per WSL distro you have, and you may only ever have one. Note also, that you should `git clone` any repo you are working with inside your WSL file space. If you place the repo in the Windows file space (e.g. `C:\my_repo`), there will be a significant [performance](https://learn.microsoft.com/en-us/windows/wsl/filesystems#file-storage-and-performance-across-file-systems) hit that will noticeably slow your builds down.
+In order to make the git workflow smooth, you can configure WSL to use the Git Credential Manager installed on your Windows host. This only needs to be done once per WSL distro instance you have, and you may only ever have one. Note also, that you should `git clone` any repo you are working with inside your WSL file space. If you place the repo in the Windows file space (e.g. `C:\my_repo`), there will be a significant [performance](https://learn.microsoft.com/en-us/windows/wsl/filesystems#file-storage-and-performance-across-file-systems) hit that will noticeably slow your builds down.
 
 The README file directs you to set this up by first installing Git for Windows, then in WSL, configure your global name and email and login to github with the Github CLI tool `gh`.
 
-Doing all this ensures your credentials will also be available inside any devcontainer you subsequently run from that WSL instance.
+Doing all this ensures your credentials will also be available inside any devcontainer you subsequently run from that WSL instance. Features in VSCode like Source Control, or Extensions like GitHub Actions and GitHub Pull Requests will now work properly along with `git` on the command line.
 
 ## West Workspace
 Zephyr's meta tool `west` supports three project [topologies](https://docs.zephyrproject.org/latest/develop/west/workspaces.html#topologies-supported). This project uses the T2: Star topology, where the application is the manifest repository as shown below.
@@ -200,7 +200,7 @@ First, you need to create the `udev` rules in your WSL instance for non-root acc
 sudo apt install stlink-tools
 ```
 
-This handles setting up those `udev` rules for you. You only need to do this once per WSL instance. If you prefer to do this yourself, you will need add the appropriate `.rules` files similar to those shown below.
+This handles setting up those `udev` rules for you. You only need to do this once per WSL instance. If you prefer to do this yourself, you will need add the appropriate `.rules` file for the debugger you are using. The following rules files are installed with `stlink-tools`.
 
 ```bash
 ubuntu:/etc/udev/rules.d$ ls -l
@@ -216,7 +216,7 @@ Second, the needed tools (e.g. `gdbserver`) to support STLINK debugging need to 
 
 Download the [STM32CubeCLT](https://www.st.com/en/development-tools/stm32cubeclt.html) package from ST. From your Windows context, it should be placed in `\\wsl.localhost\Ubuntu\home\<username>\share`. Because one of the previous shared mounts specified in the `devcontainer.json` file, the downloaded file will be available in your container as well at `/mnt/share`.
 
-From the terminal prompt of your container in VSCode, the following custom west script handles unpacking the archive and installing the needed pieces.
+From the bash terminal of your container in VSCode, running the following custom `west` script handles unpacking the archive and installing the needed pieces.
 
 ```bash
 west st-clt /mnt/share/<SMT32CubeCLT filename>
@@ -224,7 +224,7 @@ west st-clt /mnt/share/<SMT32CubeCLT filename>
 
 The script is located at `app/scripts/west_commands_st-clt.py` if you are interested in the details of what is happening.
 
-Once done, you can now plug in your STLINK debugger, [bind it and attach it](https://learn.microsoft.com/en-us/windows/wsl/connect-usb#attach-a-usb-device) with `usbipd` in PowerShell, then start your debugging session in VSCode leveraging the [Cortex-Debug](https://marketplace.visualstudio.com/items?itemName=marus25.cortex-debug) extension from marus25.
+Once done, you can now plug in your STLINK debugger, [bind it and attach it](https://learn.microsoft.com/en-us/windows/wsl/connect-usb#attach-a-usb-device) with `usbipd` in PowerShell, then start your debugging session in VSCode leveraging the [Cortex-Debug](https://marketplace.visualstudio.com/items?itemName=marus25.cortex-debug) extension from marus25 that was automatically added to VSCode for you from the list of extensions in the `devcontainer.json` file.
 
 You can review the debugging configuration in `.vscode/launch.json`. In this file you will also note there is a JLink configuration which can be used if that is your preferred debugger. You will need to install the JLink `udev` rules and drivers similarly to how the STMCubeCLT was done.
 
